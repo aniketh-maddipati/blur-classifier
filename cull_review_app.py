@@ -36,7 +36,7 @@ except ModuleNotFoundError:  # pragma: no cover - keeps finalize mode usable wit
 from PIL import Image, UnidentifiedImageError
 
 from classify import classify_image, parse_classification, resize_dimensions
-from config import HOLDOUT_DIR, MAX_IMAGE_DIMENSION, MODEL_NAME, TRAIN_DIR
+from config import CLASSES, HOLDOUT_DIR, MAX_IMAGE_DIMENSION, MODEL_NAME, TRAIN_DIR
 from exif_analyzer import ShotMetadata, extract_metadata
 
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp", ".bmp", ".arw", ".nef", ".cr2", ".raw"}
@@ -44,6 +44,7 @@ CSV_FIELDS = [
     "filename",
     "source_path",
     "triage_bucket",
+    "original_triage_class",
     "target_class",
     "aperture",
     "shutter_speed",
@@ -59,6 +60,7 @@ CSV_FIELDS = [
     "timestamp",
     "session_id",
 ]
+REVIEW_DECISIONS = {"confirm", "reject", "reclassify", "skip"}
 FOCAL_GROUPS = ("35", "85", "zoom")
 TRIAGE_TO_CLASS = {
     "intentional_blur_candidates": "intentional_blur",
@@ -237,9 +239,21 @@ SUMMARY_TEMPLATE = """
             <button class="ghost" type="submit" name="action" value="undo">Undo last (U)</button>
           </div>
         </form>
+        <details>
+          <summary>Reclassify</summary>
+          <div class="button-row">
+            {% for reclassify_target in current.reclassify_options %}
+            <form method="post" action="{{ url_for('act') }}">
+              <input type="hidden" name="action" value="reclassify">
+              <input type="hidden" name="reclassify_target" value="{{ reclassify_target }}">
+              <button class="alt" type="submit">As {{ reclassify_target }}</button>
+            </form>
+            {% endfor %}
+          </div>
+        </details>
         <p class="muted small">
           Indoor/outdoor is sticky for the current image until you confirm, reject, or skip it.
-          Confirm and reject both log immediately, then record a silent zero-shot baseline guess.
+          Confirm, reject, and reclassify all log immediately, then record a silent zero-shot baseline guess.
         </p>
       </div>
     </section>
@@ -357,6 +371,10 @@ class Candidate:
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def reclassify_options_for(target_class: str) -> list[str]:
+    return [cls for cls in CLASSES if cls != target_class]
 
 
 def normalize_number(value: float | int | None) -> str:
@@ -573,8 +591,8 @@ def parse_float(value: str | None) -> float | None:
 
 def build_summary(csv_rows: list[dict[str, str]], target_count: int, triage_buckets: set[str]) -> dict[str, Any]:
     scoped_rows = load_review_rows_for_scope(csv_rows, triage_buckets)
-    reviewed_rows = [row for row in scoped_rows if row.get("human_decision") in {"confirm", "reject", "skip"}]
-    decision_rows = [row for row in scoped_rows if row.get("human_decision") in {"confirm", "reject"}]
+    reviewed_rows = [row for row in scoped_rows if row.get("human_decision") in REVIEW_DECISIONS]
+    decision_rows = [row for row in scoped_rows if row.get("human_decision") in {"confirm", "reject", "reclassify"}]
     reviewed_so_far = len(reviewed_rows)
 
     confirm_by_bucket: dict[str, dict[str, int]] = defaultdict(lambda: {"confirm": 0, "total": 0})
@@ -678,7 +696,7 @@ def build_final_report(csv_rows: list[dict[str, str]]) -> str:
     durations = [
         parse_float(row.get("review_duration_seconds")) or 0.0
         for row in csv_rows
-        if row.get("human_decision") in {"confirm", "reject", "skip"}
+        if row.get("human_decision") in REVIEW_DECISIONS
     ]
     total_time = sum(durations)
     reviewed = len(durations)
@@ -747,16 +765,19 @@ def zero_shot_guess_for(candidate: Candidate) -> tuple[str, str]:
 
 
 def classify_agreement(target_class: str, decision: str, zero_shot_guess: str) -> str:
-    if decision not in {"confirm", "reject"} or not zero_shot_guess:
+    if decision not in {"confirm", "reject", "reclassify"} or not zero_shot_guess:
         return ""
-    agrees = (zero_shot_guess == target_class) if decision == "confirm" else (zero_shot_guess != target_class)
+    if decision == "reject":
+        agrees = zero_shot_guess != target_class
+    else:
+        agrees = zero_shot_guess == target_class
     return str(agrees)
 
 
 def copy_confirmed_images(csv_rows: list[dict[str, str]], train_dir: Path, holdout_dir: Path) -> None:
     confirmed_by_class: dict[str, list[dict[str, str]]] = defaultdict(list)
     for row in csv_rows:
-        if row.get("human_decision") == "confirm":
+        if row.get("human_decision") in {"confirm", "reclassify"}:
             confirmed_by_class[row["target_class"]].append(row)
 
     for target_class, rows in confirmed_by_class.items():
@@ -820,6 +841,9 @@ def build_app(
         "triage_buckets_in_scope": triage_buckets_in_scope,
         "queue": sampled_candidates,
         "candidate_lookup": {candidate.filename: candidate for candidate in prepared_candidates + sampled_candidates},
+        "image_lookup": {
+            candidate.image_id: candidate for candidate in prepared_candidates + sampled_candidates
+        },
         "display_times": {},
         "current_scene": {},
         "flash_message": "",
@@ -862,6 +886,7 @@ def build_app(
                 "iso_display": display_value(candidate.metadata.iso),
                 "focal_display": display_value(candidate.metadata.focal_length, suffix="mm"),
                 "indoor_or_outdoor": current_scene(candidate),
+                "reclassify_options": reclassify_options_for(candidate.target_class),
             }
 
         return render_template_string(
@@ -876,11 +901,14 @@ def build_app(
 
     @app.get("/image/<image_id>")
     def image_file(image_id: str) -> Response:
-        for candidate in state["queue"]:
-            if candidate.image_id == image_id:
-                if not candidate.path.exists():
-                    raise FileNotFoundError(f"Image source is missing: {candidate.path}")
-                return send_file(io.BytesIO(image_to_jpeg_bytes(candidate.path)), mimetype="image/jpeg")
+        # The browser can still finish fetching the previous <img src> after a
+        # confirm/reject/skip POST has already popped that candidate off the
+        # queue, so image lookup cannot rely on the live queue alone.
+        candidate = state["image_lookup"].get(image_id)
+        if candidate is not None:
+            if not candidate.path.exists():
+                raise FileNotFoundError(f"Image source is missing: {candidate.path}")
+            return send_file(io.BytesIO(image_to_jpeg_bytes(candidate.path)), mimetype="image/jpeg")
         raise FileNotFoundError(f"Unknown image id: {image_id}")
 
     @app.post("/action")
@@ -911,7 +939,13 @@ def build_app(
             state["current_scene"][candidate.filename] = action
             return redirect(url_for("index"))
 
-        if action not in {"confirm", "reject", "skip"}:
+        corrected_target_class = candidate.target_class
+        if action == "reclassify":
+            corrected_target_class = request.form.get("reclassify_target", "").strip()
+            if corrected_target_class not in reclassify_options_for(candidate.target_class):
+                state["flash_message"] = f"Unknown reclassify target: {corrected_target_class or 'missing'}"
+                return redirect(url_for("index"))
+        elif action not in REVIEW_DECISIONS:
             state["flash_message"] = f"Unknown action: {action}"
             return redirect(url_for("index"))
 
@@ -925,14 +959,18 @@ def build_app(
         ).total_seconds()
 
         zero_shot_guess = ""
-        if action in {"confirm", "reject"}:
-            zero_shot_guess, _ = zero_shot_guess_for(candidate)
+        if action in {"confirm", "reject", "reclassify"}:
+            try:
+                zero_shot_guess, _ = zero_shot_guess_for(candidate)
+            except Exception:
+                zero_shot_guess = "unavailable"
 
         row = {
             "filename": candidate.filename,
             "source_path": str(candidate.path.resolve(strict=False)),
             "triage_bucket": candidate.triage_bucket,
-            "target_class": candidate.target_class,
+            "original_triage_class": candidate.target_class,
+            "target_class": corrected_target_class,
             "aperture": normalize_number(candidate.metadata.aperture),
             "shutter_speed": normalize_number(candidate.metadata.shutter_speed),
             "iso": normalize_number(candidate.metadata.iso),
@@ -942,7 +980,7 @@ def build_app(
             "indoor_or_outdoor": current_scene(candidate),
             "review_duration_seconds": f"{duration:.6f}",
             "zero_shot_guess": zero_shot_guess,
-            "agrees_with_human": classify_agreement(candidate.target_class, action, zero_shot_guess),
+            "agrees_with_human": classify_agreement(corrected_target_class, action, zero_shot_guess),
             "first_display_timestamp": started_at,
             "timestamp": clicked_at,
             "session_id": state["session_id"],
