@@ -1,0 +1,18 @@
+# Virtual environment
+.venv/
+
+# Large image datasets — commit only the directory structure, not the files
+dataset/
+
+# Result CSVs — generated, not source-controlled
+results/*.csv
+
+# Python artifacts
+__pycache__/
+*.pyc
+
+# Local secrets
+.env
+
+# macOS metadata
+.DS_Store
