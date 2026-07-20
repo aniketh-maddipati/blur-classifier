@@ -3,6 +3,7 @@
 
 # Large image datasets — commit only the directory structure, not the files
 dataset/
+dataset_candidates/
 
 # Result CSVs — generated, not source-controlled
 results/*.csv
@@ -16,3 +17,5 @@ __pycache__/
 
 # macOS metadata
 .DS_Store
+venv/
+dataset_candidates*/
