@@ -1,2 +1,0 @@
-root:680 [INFO] Command line invocation: /Users/aniketh/blur-classifier/path/to/venv/lib/python3.12/site-packages/tinker_cookbook/recipes/vlm_classifier/train.py experiment_dir=./vlm_classifier wandb_project=vlm-classifier dataset=caltech101 renderer_name=qwen3_5_disable_thinking model_name=Qwen/Qwen3.6-35B-A3B
-tinker_cookbook.utils.ml_log:618 [INFO] Logging to: vlm_classifier/caltech101-Qwen-Qwen3.6-35B-A3B-32rank-0.0005lr-32batch-2026-07-21

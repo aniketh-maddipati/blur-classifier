@@ -1,2 +1,0 @@
-root:680 [INFO] Command line invocation: train_blur.py experiment_dir=./vlm_classifier examples_per_class=5 n_eval=12 behavior_if_log_dir_exists=delete
-tinker_cookbook.utils.ml_log:618 [INFO] Logging to: vlm_classifier/blur-Qwen-Qwen3.6-35B-A3B-32rank-0.0005lr-8batch-5shot-seed0-2026-07-21
