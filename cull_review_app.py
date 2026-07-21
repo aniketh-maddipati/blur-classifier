@@ -16,7 +16,6 @@ import hashlib
 import io
 import math
 import os
-import shutil
 import subprocess
 import tempfile
 import uuid
@@ -35,9 +34,9 @@ except ModuleNotFoundError:  # pragma: no cover - keeps finalize mode usable wit
 
 from PIL import Image, UnidentifiedImageError
 
-from classify import classify_image, parse_classification, resize_dimensions
 from config import CLASSES, HOLDOUT_DIR, MAX_IMAGE_DIMENSION, MODEL_NAME, TRAIN_DIR
 from exif_analyzer import ShotMetadata, extract_metadata
+from split_dataset import rebuild_dataset_from_review_csv, rebuild_dataset_from_rows
 
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp", ".bmp", ".arw", ".nef", ".cr2", ".raw"}
 CSV_FIELDS = [
@@ -758,7 +757,16 @@ def image_to_jpeg_bytes(source_path: Path, max_dimension: int | None = None) -> 
     return buffer.read()
 
 
+def resize_dimensions(width: int, height: int, max_dimension: int) -> tuple[int, int]:
+    if max(width, height) <= max_dimension:
+        return width, height
+    scale = max_dimension / max(width, height)
+    return int(width * scale), int(height * scale)
+
+
 def zero_shot_guess_for(candidate: Candidate) -> tuple[str, str]:
+    from classify import classify_image, parse_classification
+
     raw = classify_image(image_to_jpeg_bytes(candidate.path, max_dimension=MAX_IMAGE_DIMENSION), MODEL_NAME)
     parsed = parse_classification(raw) or ""
     return parsed, raw
@@ -775,32 +783,12 @@ def classify_agreement(target_class: str, decision: str, zero_shot_guess: str) -
 
 
 def copy_confirmed_images(csv_rows: list[dict[str, str]], train_dir: Path, holdout_dir: Path) -> None:
-    confirmed_by_class: dict[str, list[dict[str, str]]] = defaultdict(list)
-    for row in csv_rows:
-        if row.get("human_decision") in {"confirm", "reclassify"}:
-            confirmed_by_class[row["target_class"]].append(row)
-
-    for target_class, rows in confirmed_by_class.items():
-        rows.sort(key=lambda row: row.get("timestamp", ""))
-        holdout_rows = rows[-10:]
-        train_rows = rows[:-10]
-
-        for split_name, split_rows, split_dir in [
-            ("train", train_rows, train_dir / target_class),
-            ("holdout", holdout_rows, holdout_dir / target_class),
-        ]:
-            split_dir.mkdir(parents=True, exist_ok=True)
-            copied = 0
-            for row in split_rows:
-                source_path = Path(row["source_path"])
-                if not source_path.exists():
-                    raise FileNotFoundError(
-                        f"Cannot finalize {row['filename']} into {split_name}: missing source file {source_path}"
-                    )
-                destination = split_dir / row["filename"]
-                shutil.copy2(source_path, destination)
-                copied += 1
-            print(f"{target_class} -> {split_name}: copied {copied} file(s) into {split_dir}")
+    rebuild_dataset_from_rows(
+        csv_rows,
+        train_dir=train_dir,
+        holdout_dir=holdout_dir,
+        manifest_path=train_dir.parent / "split_manifest.csv",
+    )
 
 
 def build_app(
@@ -1013,13 +1001,14 @@ def run_review(args: argparse.Namespace) -> None:
 
 def run_finalize(args: argparse.Namespace) -> None:
     csv_path = Path(args.csv)
-    rows = read_csv_rows(csv_path)
-    if not rows:
-        raise ValueError(f"No rows found in {csv_path}")
-
-    copy_confirmed_images(rows, Path(TRAIN_DIR), Path(HOLDOUT_DIR))
+    rebuild_dataset_from_review_csv(
+        csv_path,
+        train_dir=Path(TRAIN_DIR),
+        holdout_dir=Path(HOLDOUT_DIR),
+        manifest_path=Path(TRAIN_DIR).parent / "split_manifest.csv",
+    )
     print()
-    print(build_final_report(rows))
+    print(build_final_report(read_csv_rows(csv_path)))
 
 
 def build_parser() -> argparse.ArgumentParser:

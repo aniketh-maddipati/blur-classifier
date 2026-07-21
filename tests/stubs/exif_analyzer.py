@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -12,6 +13,7 @@ class ShotMetadata:
     iso: Optional[int] = None
     focal_length: Optional[float] = None
     camera_model: Optional[str] = None
+    capture_datetime: Optional[datetime] = None
 
 
 def extract_metadata(image_path: str) -> ShotMetadata:

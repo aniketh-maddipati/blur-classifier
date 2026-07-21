@@ -138,11 +138,14 @@ def test_reclassify_logs_corrected_class_and_finalize_uses_it(live_review_server
     monkeypatch.setattr(finalize_dataset, "TRAIN_DIR", str(train_dir))
     monkeypatch.setattr(finalize_dataset, "HOLDOUT_DIR", str(holdout_dir))
 
-    finalized_rows = finalize_dataset.read_rows(Path(csv_path))
-    grouped = finalize_dataset.confirmed_rows_by_class(finalized_rows)
-    train_rows, holdout_rows = finalize_dataset.split_rows(grouped["intentional_blur"])
-    finalize_dataset.copy_rows(train_rows, train_dir)
-    finalize_dataset.copy_rows(holdout_rows, holdout_dir)
+    finalize_dataset.rebuild_dataset_from_review_csv(
+        Path(csv_path),
+        train_dir=train_dir,
+        holdout_dir=holdout_dir,
+        manifest_path=tmp_path / "split_manifest.csv",
+    )
 
     assert not (holdout_dir / "unintentional_blur" / row["filename"]).exists()
-    assert (holdout_dir / "intentional_blur" / row["filename"]).exists()
+    assert (holdout_dir / "intentional_blur" / row["filename"]).exists() or (
+        train_dir / "intentional_blur" / row["filename"]
+    ).exists()

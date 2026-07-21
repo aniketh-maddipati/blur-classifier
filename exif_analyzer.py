@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field, asdict
+from datetime import datetime
 from fractions import Fraction
 from typing import Optional
 
@@ -38,6 +39,7 @@ class ShotMetadata:
     iso: Optional[int] = None
     focal_length: Optional[float] = None   # in mm
     camera_model: Optional[str] = None
+    capture_datetime: Optional[datetime] = None
 
 
 @dataclass
@@ -75,6 +77,29 @@ def _ratio_to_float(value) -> Optional[float]:
         return None
 
 
+def _parse_capture_datetime(tags: dict[str, object]) -> Optional[datetime]:
+    capture_tag = tags.get("EXIF DateTimeOriginal")
+    if capture_tag is None:
+        return None
+
+    base_value = str(capture_tag).strip()
+    try:
+        capture_dt = datetime.strptime(base_value, "%Y:%m:%d %H:%M:%S")
+    except ValueError:
+        return None
+
+    subsec_tag = tags.get("EXIF SubSecTimeOriginal")
+    if subsec_tag is None:
+        return capture_dt
+
+    digits = "".join(ch for ch in str(subsec_tag).strip() if ch.isdigit())
+    if not digits:
+        return capture_dt
+
+    microseconds = int((digits + "000000")[:6])
+    return capture_dt.replace(microsecond=microseconds)
+
+
 def extract_metadata(image_path: str) -> ShotMetadata:
     """Reads the EXIF block from `image_path` and returns normalized values."""
     with open(image_path, "rb") as f:
@@ -89,6 +114,7 @@ def extract_metadata(image_path: str) -> ShotMetadata:
 
     camera_model_tag = tags.get("Image Model")
     camera_model = str(camera_model_tag).strip() if camera_model_tag else None
+    capture_datetime = _parse_capture_datetime(tags)
 
     return ShotMetadata(
         aperture=aperture,
@@ -96,6 +122,7 @@ def extract_metadata(image_path: str) -> ShotMetadata:
         iso=iso,
         focal_length=focal_length,
         camera_model=camera_model,
+        capture_datetime=capture_datetime,
     )
 
 
