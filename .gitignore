@@ -20,3 +20,4 @@ __pycache__/
 venv/
 dataset_candidates*/
 .pytest_cache/
+vlm_classifier/
