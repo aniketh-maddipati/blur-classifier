@@ -21,3 +21,7 @@ TRAIN_DIR = "dataset/train"
 HOLDOUT_DIR = "dataset/holdout"
 
 MAX_IMAGE_DIMENSION = 1600
+
+# RAW->JPEG resolution (see jpeg_resolution.py).
+ARCHIVE_ROOT = "/Volumes/T7/photo-archive"
+EXTRACTED_DIR = "dataset/_extracted"
