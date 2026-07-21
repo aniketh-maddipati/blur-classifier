@@ -1,0 +1,195 @@
+### repo: /Users/aniketh/blur-classifier @ c1c3120d5ce6893006f0f3e836f359ec1a1cc847
+modules: tinker_cookbook
+-- repo-wide (vs HEAD, staged+unstaged) --
+diff --git a/classify.py b/classify.py
+index 109e2f5..5f1dba2 100644
+--- a/classify.py
++++ b/classify.py
+@@ -4,13 +4,19 @@ Shared classification helpers.
+ Imported by baseline_eval.py and evaluate.py — do not duplicate this logic.
+ """
+ 
++import base64
+ import io
++import os
+ 
++from openai import OpenAI
+ from PIL import Image
+ 
+ from config import CLASSES, CLASSIFICATION_PROMPT, MAX_IMAGE_DIMENSION
+ 
+ 
++TINKER_OAI_BASE_URL = "https://tinker.thinkingmachines.dev/services/tinker-prod/oai/api/v1"
++
++
+ # ---------------------------------------------------------------------------
+ # Image utilities
+ # ---------------------------------------------------------------------------
+@@ -68,31 +74,38 @@ def parse_classification(raw: str) -> str | None:
+ def classify_image(image_bytes: bytes, model_path: str) -> str:
+     """
+     Send image_bytes and CLASSIFICATION_PROMPT to the model at model_path
+-    via the Tinker SDK and return the raw text response.
+-
+-    TODO: Verify the entire block below against the current Tinker SDK docs
+-          before running for real.  The sketch follows patterns visible in
+-          tinker-cookbook examples as of mid-2025 but field names and call
+-          signatures may have changed.
+-          Reference: https://github.com/thinking-machines-lab/tinker-cookbook
++    via Tinker's OpenAI-compatible endpoint and return the raw text response.
+     """
++    api_key = os.getenv("TINKER_API_KEY")
++    if not api_key:
++        raise RuntimeError("TINKER_API_KEY is not set")
+ 
+-    # TODO: confirm correct import path for the Tinker SDK
+-    from tinker import TinkerClient, ModelInput, ImageChunk, EncodedTextChunk  # type: ignore
+-
+-    # TODO: confirm whether TinkerClient() reads TINKER_API_KEY from the
+-    #       environment automatically or requires an explicit api_key= kwarg.
+-    client = TinkerClient()  # TODO: verify init signature
+-
+-    model_input = ModelInput(  # TODO: verify ModelInput constructor
+-        chunks=[
+-            ImageChunk(data=image_bytes, format="jpeg"),  # TODO: verify field names
+-            EncodedTextChunk(text=CLASSIFICATION_PROMPT),  # TODO: verify field names
+-        ]
++    client = OpenAI(
++        base_url=TINKER_OAI_BASE_URL,
++        api_key=api_key,
+     )
+ 
+-    response = client.sample(model_path, model_input)  # TODO: verify sample() signature
+-    return response.text  # TODO: verify response attribute name
++    b64_image = base64.b64encode(image_bytes).decode("utf-8")
++    messages = [
++        {
++            "role": "user",
++            "content": [
++                {"type": "text", "text": CLASSIFICATION_PROMPT},
++                {
++                    "type": "image_url",
++                    "image_url": {"url": f"data:image/jpeg;base64,{b64_image}"},
++                },
++            ],
++        }
++    ]
++
++    response = client.chat.completions.create(
++        model=model_path,
++        messages=messages,
++        max_tokens=500,
++        extra_body={"separate_reasoning": True},
++    )
++    return response.choices[0].message.content or ""
+ 
+ 
+ # ---------------------------------------------------------------------------
+diff --git a/config.py b/config.py
+index ca24a46..0adf0c5 100644
+--- a/config.py
++++ b/config.py
+@@ -2,7 +2,7 @@
+ Central configuration — import from here, never hard-code values in other modules.
+ """
+ 
+-MODEL_NAME = "Qwen3-VL-30B-A3B-Instruct"
++MODEL_NAME = "moonshotai/Kimi-K2.6"
+ 
+ CLASSES = ["intentional_blur", "unintentional_blur", "sharp"]
+ 
+diff --git a/finalize_dataset.py b/finalize_dataset.py
+index f57ea71..370c6b3 100644
+--- a/finalize_dataset.py
++++ b/finalize_dataset.py
+@@ -15,11 +15,9 @@ from pathlib import Path
+ 
+ from config import CLASSES, HOLDOUT_DIR, TRAIN_DIR
+ 
+-CSV_FIELDS = {
++COMMON_REQUIRED_FIELDS = {
+     "filename",
+     "source_path",
+-    "claimed_class",
+-    "human_confirmed",
+     "indoor_or_outdoor",
+     "focal_length",
+     "zero_shot_guess",
+@@ -38,19 +36,34 @@ def parse_args() -> argparse.Namespace:
+ def read_rows(csv_path: Path) -> list[dict[str, str]]:
+     with csv_path.open(newline="") as handle:
+         reader = csv.DictReader(handle)
+-        missing = CSV_FIELDS.difference(reader.fieldnames or [])
++        fieldnames = set(reader.fieldnames or [])
++        missing = COMMON_REQUIRED_FIELDS.difference(fieldnames)
+         if missing:
+             raise SystemExit(f"Review CSV is missing required columns: {sorted(missing)}")
++        if not ({"target_class", "claimed_class"} & fieldnames):
++            raise SystemExit("Review CSV must include either 'target_class' or 'claimed_class'.")
++        if not ({"human_decision", "human_confirmed"} & fieldnames):
++            raise SystemExit("Review CSV must include either 'human_decision' or 'human_confirmed'.")
+         return list(reader)
+ 
+ 
++def resolved_target_class(row: dict[str, str]) -> str:
++    return row.get("target_class") or row.get("claimed_class", "")
++
++
++def row_is_selected(row: dict[str, str]) -> bool:
++    if row.get("human_decision") in {"confirm", "reclassify"}:
++        return True
++    return row.get("human_confirmed") == "y"
++
++
+ def confirmed_rows_by_class(rows: list[dict[str, str]]) -> dict[str, list[dict[str, str]]]:
+     grouped: dict[str, list[dict[str, str]]] = {cls: [] for cls in CLASSES}
+     for row in rows:
+-        cls = row["claimed_class"]
++        cls = resolved_target_class(row)
+         if cls not in grouped:
+             continue
+-        if row["human_confirmed"] == "y":
++        if row_is_selected(row):
+             grouped[cls].append(row)
+     return grouped
+ 
+@@ -70,7 +83,7 @@ def copy_rows(rows: list[dict[str, str]], destination_root: Path) -> int:
+             print(f"[warn] Missing source file, skipping: {source}")
+             continue
+ 
+-        destination_dir = destination_root / row["claimed_class"]
++        destination_dir = destination_root / resolved_target_class(row)
+         destination_dir.mkdir(parents=True, exist_ok=True)
+         destination = destination_dir / source.name
+         shutil.copy2(source, destination)
+@@ -79,10 +92,10 @@ def copy_rows(rows: list[dict[str, str]], destination_root: Path) -> int:
+ 
+ 
+ def agreement_rate(rows: list[dict[str, str]]) -> str:
+-    relevant = [row for row in rows if row["agrees_with_human"] in {"true", "false"}]
++    relevant = [row for row in rows if row["agrees_with_human"] in {"true", "false", "True", "False"}]
+     if not relevant:
+         return "n/a"
+-    agreed = sum(1 for row in relevant if row["agrees_with_human"] == "true")
++    agreed = sum(1 for row in relevant if row["agrees_with_human"].lower() == "true")
+     return f"{agreed}/{len(relevant)} = {agreed / len(relevant):.1%}"
+ 
+ 
+@@ -98,7 +111,7 @@ def main() -> None:
+     copied_counts: dict[str, dict[str, int]] = defaultdict(lambda: {"train": 0, "holdout": 0})
+     all_rows_by_class: dict[str, list[dict[str, str]]] = {cls: [] for cls in CLASSES}
+     for row in rows:
+-        cls = row["claimed_class"]
++        cls = resolved_target_class(row)
+         if cls in all_rows_by_class:
+             all_rows_by_class[cls].append(row)
+ 
+diff --git a/requirements.txt b/requirements.txt
+index b0099a2..bcef608 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -2,3 +2,4 @@ tinker
+ pillow
+ exifread
+ flask
++openai

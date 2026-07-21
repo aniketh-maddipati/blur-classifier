@@ -15,11 +15,9 @@ from pathlib import Path
 
 from config import CLASSES, HOLDOUT_DIR, TRAIN_DIR
 
-CSV_FIELDS = {
+COMMON_REQUIRED_FIELDS = {
     "filename",
     "source_path",
-    "claimed_class",
-    "human_confirmed",
     "indoor_or_outdoor",
     "focal_length",
     "zero_shot_guess",
@@ -38,19 +36,34 @@ def parse_args() -> argparse.Namespace:
 def read_rows(csv_path: Path) -> list[dict[str, str]]:
     with csv_path.open(newline="") as handle:
         reader = csv.DictReader(handle)
-        missing = CSV_FIELDS.difference(reader.fieldnames or [])
+        fieldnames = set(reader.fieldnames or [])
+        missing = COMMON_REQUIRED_FIELDS.difference(fieldnames)
         if missing:
             raise SystemExit(f"Review CSV is missing required columns: {sorted(missing)}")
+        if not ({"target_class", "claimed_class"} & fieldnames):
+            raise SystemExit("Review CSV must include either 'target_class' or 'claimed_class'.")
+        if not ({"human_decision", "human_confirmed"} & fieldnames):
+            raise SystemExit("Review CSV must include either 'human_decision' or 'human_confirmed'.")
         return list(reader)
+
+
+def resolved_target_class(row: dict[str, str]) -> str:
+    return row.get("target_class") or row.get("claimed_class", "")
+
+
+def row_is_selected(row: dict[str, str]) -> bool:
+    if row.get("human_decision") in {"confirm", "reclassify"}:
+        return True
+    return row.get("human_confirmed") == "y"
 
 
 def confirmed_rows_by_class(rows: list[dict[str, str]]) -> dict[str, list[dict[str, str]]]:
     grouped: dict[str, list[dict[str, str]]] = {cls: [] for cls in CLASSES}
     for row in rows:
-        cls = row["claimed_class"]
+        cls = resolved_target_class(row)
         if cls not in grouped:
             continue
-        if row["human_confirmed"] == "y":
+        if row_is_selected(row):
             grouped[cls].append(row)
     return grouped
 
@@ -70,7 +83,7 @@ def copy_rows(rows: list[dict[str, str]], destination_root: Path) -> int:
             print(f"[warn] Missing source file, skipping: {source}")
             continue
 
-        destination_dir = destination_root / row["claimed_class"]
+        destination_dir = destination_root / resolved_target_class(row)
         destination_dir.mkdir(parents=True, exist_ok=True)
         destination = destination_dir / source.name
         shutil.copy2(source, destination)
@@ -79,10 +92,10 @@ def copy_rows(rows: list[dict[str, str]], destination_root: Path) -> int:
 
 
 def agreement_rate(rows: list[dict[str, str]]) -> str:
-    relevant = [row for row in rows if row["agrees_with_human"] in {"true", "false"}]
+    relevant = [row for row in rows if row["agrees_with_human"] in {"true", "false", "True", "False"}]
     if not relevant:
         return "n/a"
-    agreed = sum(1 for row in relevant if row["agrees_with_human"] == "true")
+    agreed = sum(1 for row in relevant if row["agrees_with_human"].lower() == "true")
     return f"{agreed}/{len(relevant)} = {agreed / len(relevant):.1%}"
 
 
@@ -98,7 +111,7 @@ def main() -> None:
     copied_counts: dict[str, dict[str, int]] = defaultdict(lambda: {"train": 0, "holdout": 0})
     all_rows_by_class: dict[str, list[dict[str, str]]] = {cls: [] for cls in CLASSES}
     for row in rows:
-        cls = row["claimed_class"]
+        cls = resolved_target_class(row)
         if cls in all_rows_by_class:
             all_rows_by_class[cls].append(row)
 

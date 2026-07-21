@@ -1,4 +1,5 @@
 tinker
+tinker-cookbook
 pillow
 exifread
 flask

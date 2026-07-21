@@ -2,7 +2,7 @@
 Central configuration — import from here, never hard-code values in other modules.
 """
 
-MODEL_NAME = "Qwen3-VL-30B-A3B-Instruct"
+MODEL_NAME = "Qwen/Qwen3.6-35B-A3B"
 
 CLASSES = ["intentional_blur", "unintentional_blur", "sharp"]
 

@@ -1,0 +1,35 @@
+Candidates folder: /Users/aniketh/blur-classifier/dataset_candidates/intentional_blur_candidates
+CSV log: /Users/aniketh/blur-classifier/results/cull_review.verify.csv
+Target count: 36
+Starting Flask review app on http://127.0.0.1:53549
+ * Serving Flask app 'cull_review_app'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:53549
+[33mPress CTRL+C to quit[0m
+127.0.0.1 - - [20/Jul/2026 14:50:13] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [20/Jul/2026 14:50:13] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [20/Jul/2026 14:50:13] "GET /image/c11f0319ba1d3357 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Jul/2026 14:50:13] "[32mPOST /action HTTP/1.1[0m" 302 -
+127.0.0.1 - - [20/Jul/2026 14:50:13] "GET /image/c11f0319ba1d3357 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Jul/2026 14:50:13] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [20/Jul/2026 14:50:13] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [20/Jul/2026 14:50:13] "GET /image/b1f8c321e00ac076 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Jul/2026 14:50:13] "[32mPOST /action HTTP/1.1[0m" 302 -
+127.0.0.1 - - [20/Jul/2026 14:50:13] "GET /image/b1f8c321e00ac076 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Jul/2026 14:50:13] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [20/Jul/2026 14:50:13] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [20/Jul/2026 14:50:13] "GET /image/95717fc69d98f8c5 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Jul/2026 14:50:13] "[32mPOST /action HTTP/1.1[0m" 302 -
+127.0.0.1 - - [20/Jul/2026 14:50:14] "GET /image/95717fc69d98f8c5 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Jul/2026 14:50:14] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [20/Jul/2026 14:50:14] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [20/Jul/2026 14:50:14] "GET /image/edaa5f466375e777 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Jul/2026 14:50:14] "[32mPOST /action HTTP/1.1[0m" 302 -
+127.0.0.1 - - [20/Jul/2026 14:50:14] "GET /image/edaa5f466375e777 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Jul/2026 14:50:14] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [20/Jul/2026 14:50:14] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [20/Jul/2026 14:50:14] "GET /image/9fdc0f2453f804a4 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Jul/2026 14:50:14] "[32mPOST /action HTTP/1.1[0m" 302 -
+127.0.0.1 - - [20/Jul/2026 14:50:14] "GET /image/9fdc0f2453f804a4 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Jul/2026 14:50:14] "GET / HTTP/1.1" 200 -
