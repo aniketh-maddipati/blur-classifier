@@ -22,24 +22,35 @@ Usage:
 
 from __future__ import annotations
 
+import argparse
 import asyncio
 import csv
 import math
 from collections import Counter
+from dataclasses import dataclass
 from pathlib import Path
+import sys
 
 import chz
 import tinker
 
 from blur_dataset import (
+    ASSISTANT_PREFIX,
     BlurEvaluatorBuilder,
     CLASS_NAMES,
+    IMAGE_EXTENSIONS,
+    USER_PROMPT,
     BlurClassifierOutput,
     BlurExample,
+    _open_image_from_path,
     confusion_matrix_from_pairs,
+    parse_predicted_class_name,
 )
+from blur_labels import CLASSES
 from tinker_client import disable_pyqwest_transport
 from tinker_cookbook import checkpoint_utils, model_info
+from tinker_cookbook.image_processing_utils import resize_image
+from tinker_cookbook.renderers import ImagePart, Message, TextPart, get_text_content
 from tinker_cookbook.utils.git_rev import recipe_user_metadata
 
 
@@ -71,6 +82,30 @@ class EvalConfig:
     repeats: int = 1
     # Per-image predictions for every repeat land here (one row per image).
     per_image_csv: str | None = "results/eval_per_image.csv"
+    flat_dir: str | None = None
+
+
+@dataclass(frozen=True)
+class FlatImageRecord:
+    image_path: Path
+    basename: str
+
+
+@dataclass(frozen=True)
+class FlatDirCliArgs:
+    flat_dir: str
+    model_path: str
+    max_image_size: int
+    per_image_csv: str | None
+    repeats: int
+    renderer_name: str | None
+    model_name: str | None
+    base_url: str | None
+    temperature: float
+    max_tokens: int
+    top_p: float
+    top_k: int
+    max_parallel_tasks: int
 
 
 def wilson_interval(successes: int, total: int, z: float = 1.96) -> tuple[float, float]:
@@ -170,6 +205,64 @@ def _write_per_image_csv(
             )
 
 
+def _iter_flat_dir_images(flat_dir: Path) -> list[FlatImageRecord]:
+    if not flat_dir.is_dir():
+        raise FileNotFoundError(f"Flat directory does not exist: {flat_dir}")
+    return [
+        FlatImageRecord(image_path=path, basename=path.name)
+        for path in sorted(flat_dir.iterdir())
+        if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS
+    ]
+
+
+def _build_flat_generation_prompt(renderer, image_path: Path, max_image_size: int) -> tinker.ModelInput:
+    pil_image = resize_image(
+        image=_open_image_from_path(str(image_path)),
+        max_size=max_image_size,
+    )
+    messages = [
+        Message(
+            role="user",
+            content=[
+                ImagePart(type="image", image=pil_image),
+                TextPart(type="text", text=USER_PROMPT),
+            ],
+        )
+    ]
+    return renderer.build_generation_prompt(
+        messages=messages,
+        role="assistant",
+        prefill=ASSISTANT_PREFIX,
+    )
+
+
+def _write_flat_predictions_csv(
+    csv_path: Path,
+    images: list[FlatImageRecord],
+    predictions_by_run: list[list[str]],
+) -> None:
+    csv_path.parent.mkdir(parents=True, exist_ok=True)
+    header = (
+        ["image_path", "basename"]
+        + [f"pred_run{index + 1}" for index in range(len(predictions_by_run))]
+        + ["flipped", "majority_pred"]
+    )
+    with csv_path.open("w", newline="") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(header)
+        for index, image in enumerate(images):
+            preds = [run[index] for run in predictions_by_run]
+            writer.writerow(
+                [
+                    str(image.image_path),
+                    image.basename,
+                    *preds,
+                    len(set(preds)) > 1,
+                    _majority_vote(preds),
+                ]
+            )
+
+
 def _report_aggregate(
     all_metrics: list[dict[str, float]],
     all_runs: list[list[tuple[BlurExample, BlurClassifierOutput]]],
@@ -219,7 +312,114 @@ def _report_aggregate(
     print(_format_confusion(confusion))
 
 
+def _resolve_renderer_and_model(
+    service_client: tinker.ServiceClient,
+    eval_config: EvalConfig,
+) -> tuple[str, str]:
+    resolved_model_name = eval_config.model_name
+    resolved_renderer_name = eval_config.renderer_name
+
+    rest_client = service_client.create_rest_client()
+    try:
+        training_run = rest_client.get_training_run_by_tinker_path(eval_config.model_path).result()
+    except Exception:
+        training_run = None
+
+    if training_run is not None:
+        if resolved_model_name is not None and resolved_model_name != training_run.base_model:
+            raise ValueError(
+                f"Model name {resolved_model_name} does not match checkpoint base model {training_run.base_model}"
+            )
+        resolved_model_name = resolved_model_name or training_run.base_model
+
+    resolved_renderer_name = (
+        resolved_renderer_name
+        or checkpoint_utils.get_renderer_name_from_checkpoint(service_client, eval_config.model_path)
+    )
+    resolved_model_name = resolved_model_name or eval_config.model_path
+    if resolved_renderer_name is None:
+        resolved_renderer_name = model_info.get_recommended_renderer_name(resolved_model_name)
+    return resolved_model_name, resolved_renderer_name
+
+
+def run_flat_dir_eval(eval_config: EvalConfig) -> None:
+    if not eval_config.flat_dir:
+        raise ValueError("flat_dir must be set for flat-directory eval")
+    if eval_config.repeats < 1:
+        raise ValueError("repeats must be >= 1")
+
+    images = _iter_flat_dir_images(Path(eval_config.flat_dir))
+    if not images:
+        raise AssertionError(f"No supported images found in {eval_config.flat_dir}")
+
+    with disable_pyqwest_transport():
+        service_client = tinker.ServiceClient(
+            base_url=eval_config.base_url,
+            user_metadata=recipe_user_metadata("eval_vlm_classifier_blur_flat_dir"),
+        )
+        sampling_client = service_client.create_sampling_client(model_path=eval_config.model_path)
+        resolved_model_name, resolved_renderer_name = _resolve_renderer_and_model(service_client, eval_config)
+
+        from tinker_cookbook import renderers
+        from tinker_cookbook.image_processing_utils import get_image_processor
+        from tinker_cookbook.tokenizer_utils import get_tokenizer
+
+        renderer = renderers.get_renderer(
+            name=resolved_renderer_name,
+            tokenizer=get_tokenizer(resolved_model_name),
+            image_processor=get_image_processor(resolved_model_name),
+        )
+        sampling_params = tinker.types.SamplingParams(
+            max_tokens=eval_config.max_tokens,
+            temperature=eval_config.temperature,
+            top_p=eval_config.top_p,
+            top_k=eval_config.top_k,
+            stop=renderer.get_stop_sequences(),
+        )
+        prompts = [
+            _build_flat_generation_prompt(renderer, image.image_path, eval_config.max_image_size)
+            for image in images
+        ]
+
+        async def predict_once() -> list[str]:
+            semaphore = asyncio.Semaphore(eval_config.max_parallel_tasks)
+
+            async def predict_prompt(prompt: tinker.ModelInput) -> str:
+                async with semaphore:
+                    response = await sampling_client.sample_async(
+                        prompt=prompt,
+                        num_samples=1,
+                        sampling_params=sampling_params,
+                    )
+                    rendered_message = renderer.parse_response(response.sequences[0].tokens)[0]
+                    return parse_predicted_class_name(get_text_content(rendered_message)).replace("_", " ")
+
+            return await asyncio.gather(*(predict_prompt(prompt) for prompt in prompts))
+
+        async def main() -> list[list[str]]:
+            predictions_by_run: list[list[str]] = []
+            for run_index in range(1, eval_config.repeats + 1):
+                print(f"Flat-dir prediction run {run_index}/{eval_config.repeats} for {eval_config.flat_dir}")
+                predictions_by_run.append(await predict_once())
+            return predictions_by_run
+
+        predictions_by_run = asyncio.run(main())
+        csv_path = Path(
+            eval_config.per_image_csv
+            or Path("results") / f"{Path(eval_config.flat_dir).name}_predictions.csv"
+        )
+        _write_flat_predictions_csv(csv_path, images, predictions_by_run)
+        print("\nPredictions:")
+        for index, image in enumerate(images):
+            preds = [run[index] for run in predictions_by_run]
+            print(f"  {image.basename}: {_majority_vote(preds)}")
+        print(f"\nPer-image predictions written to {csv_path}")
+
+
 def run_eval(eval_config: EvalConfig) -> None:
+    if eval_config.flat_dir:
+        run_flat_dir_eval(eval_config)
+        return
     if eval_config.repeats < 1:
         raise ValueError("repeats must be >= 1")
 
@@ -229,30 +429,7 @@ def run_eval(eval_config: EvalConfig) -> None:
             user_metadata=recipe_user_metadata("eval_vlm_classifier_blur_local"),
         )
         sampling_client = service_client.create_sampling_client(model_path=eval_config.model_path)
-
-        resolved_model_name = eval_config.model_name
-        resolved_renderer_name = eval_config.renderer_name
-
-        rest_client = service_client.create_rest_client()
-        try:
-            training_run = rest_client.get_training_run_by_tinker_path(eval_config.model_path).result()
-        except Exception:
-            training_run = None
-
-        if training_run is not None:
-            if resolved_model_name is not None and resolved_model_name != training_run.base_model:
-                raise ValueError(
-                    f"Model name {resolved_model_name} does not match checkpoint base model {training_run.base_model}"
-                )
-            resolved_model_name = resolved_model_name or training_run.base_model
-
-        resolved_renderer_name = (
-            resolved_renderer_name
-            or checkpoint_utils.get_renderer_name_from_checkpoint(service_client, eval_config.model_path)
-        )
-        resolved_model_name = resolved_model_name or eval_config.model_path
-        if resolved_renderer_name is None:
-            resolved_renderer_name = model_info.get_recommended_renderer_name(resolved_model_name)
+        resolved_model_name, resolved_renderer_name = _resolve_renderer_and_model(service_client, eval_config)
 
         evaluator_builder = BlurEvaluatorBuilder(
             model_name_for_tokenizer=resolved_model_name,
@@ -294,5 +471,58 @@ def run_eval(eval_config: EvalConfig) -> None:
         asyncio.run(main())
 
 
+def _parse_flat_dir_cli(argv: list[str]) -> FlatDirCliArgs:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--flat-dir", required=True)
+    parser.add_argument("--model-path", required=True)
+    parser.add_argument("--max-image-size", required=True, type=int)
+    parser.add_argument("--per-image-csv", default=None)
+    parser.add_argument("--repeats", default=1, type=int)
+    parser.add_argument("--renderer-name", default="qwen3_5_disable_thinking")
+    parser.add_argument("--model-name", default="Qwen/Qwen3.6-35B-A3B")
+    parser.add_argument("--base-url", default=None)
+    parser.add_argument("--temperature", default=0.0, type=float)
+    parser.add_argument("--max-tokens", default=128, type=int)
+    parser.add_argument("--top-p", default=1.0, type=float)
+    parser.add_argument("--top-k", default=-1, type=int)
+    parser.add_argument("--max-parallel-tasks", default=128, type=int)
+    args = parser.parse_args(argv)
+    return FlatDirCliArgs(
+        flat_dir=args.flat_dir,
+        model_path=args.model_path,
+        max_image_size=args.max_image_size,
+        per_image_csv=args.per_image_csv,
+        repeats=args.repeats,
+        renderer_name=args.renderer_name,
+        model_name=args.model_name,
+        base_url=args.base_url,
+        temperature=args.temperature,
+        max_tokens=args.max_tokens,
+        top_p=args.top_p,
+        top_k=args.top_k,
+        max_parallel_tasks=args.max_parallel_tasks,
+    )
+
+
 if __name__ == "__main__":
-    run_eval(chz.entrypoint(EvalConfig))
+    if "--flat-dir" in sys.argv:
+        flat_args = _parse_flat_dir_cli(sys.argv[1:])
+        run_eval(
+            EvalConfig(
+                model_path=flat_args.model_path,
+                max_image_size=flat_args.max_image_size,
+                renderer_name=flat_args.renderer_name,
+                model_name=flat_args.model_name,
+                base_url=flat_args.base_url,
+                temperature=flat_args.temperature,
+                max_tokens=flat_args.max_tokens,
+                top_p=flat_args.top_p,
+                top_k=flat_args.top_k,
+                max_parallel_tasks=flat_args.max_parallel_tasks,
+                repeats=flat_args.repeats,
+                per_image_csv=flat_args.per_image_csv,
+                flat_dir=flat_args.flat_dir,
+            )
+        )
+    else:
+        run_eval(chz.entrypoint(EvalConfig))
