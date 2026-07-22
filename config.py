@@ -2,9 +2,9 @@
 Central configuration — import from here, never hard-code values in other modules.
 """
 
-MODEL_NAME = "Qwen/Qwen3.6-35B-A3B"
+from blur_labels import CLASSES
 
-CLASSES = ["intentional_blur", "unintentional_blur", "sharp"]
+MODEL_NAME = "Qwen/Qwen3.6-35B-A3B"
 
 CLASSIFICATION_PROMPT = (
     "Look at this photo and classify its blur into exactly one of these categories:\n\n"

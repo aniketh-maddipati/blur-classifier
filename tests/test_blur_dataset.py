@@ -17,6 +17,7 @@ from blur_dataset import (
     LocalDatasetSplit,
     USER_PROMPT,
     load_blur_examples,
+    parse_predicted_class_name,
 )
 
 
@@ -82,6 +83,12 @@ def _counts(dataset: LocalDatasetSplit) -> dict[str, int]:
 class _DummyRenderer:
     def build_supervised_example(self, messages, train_on_what):
         return SimpleNamespace(length=lambda: 64), None
+
+
+def _part_value(part, key: str):
+    if isinstance(part, dict):
+        return part.get(key)
+    return getattr(part, key, None)
 
 
 @pytest.fixture
@@ -173,8 +180,21 @@ def test_smoke_render_or_validate_message_structure(
         assistant_parts = messages[1]["content"]
         assert messages[0]["role"] == "user"
         assert messages[1]["role"] == "assistant"
-        assert getattr(user_parts[0], "type", None) == "image"
-        assert getattr(user_parts[1], "text", None) == USER_PROMPT
-        assert getattr(assistant_parts[0], "text", "").startswith(ASSISTANT_PREFIX)
-        assert any(class_name in assistant_parts[0].text for class_name in CLASS_NAMES)
+        assert _part_value(user_parts[0], "type") == "image"
+        assert _part_value(user_parts[1], "text") == USER_PROMPT
+        assert _part_value(assistant_parts[0], "text").startswith(ASSISTANT_PREFIX)
+        assert any(class_name in _part_value(assistant_parts[0], "text") for class_name in CLASS_NAMES)
         print(f"Renderer smoke test fell back to message-structure validation: {exc}")
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("intentional blur", "intentional blur"),
+        ("intentional_blur", "intentional blur"),
+        ("The blur in this photo is: unintentional blur", "unintentional blur"),
+        ("The blur in this photo is: unintentional_blur", "unintentional blur"),
+    ],
+)
+def test_parse_predicted_class_name_accepts_spaced_and_underscored_labels(raw: str, expected: str) -> None:
+    assert parse_predicted_class_name(raw) == expected

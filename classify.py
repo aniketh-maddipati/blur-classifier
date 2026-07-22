@@ -20,6 +20,7 @@ from tinker_cookbook.image_processing_utils import get_image_processor
 from tinker_cookbook.renderers import ImagePart, Message, TextPart, get_text_content
 from tinker_cookbook.tokenizer_utils import get_tokenizer
 
+from blur_labels import find_in_text
 from config import CLASSES, CLASSIFICATION_PROMPT, MAX_IMAGE_DIMENSION
 
 
@@ -96,13 +97,7 @@ def parse_classification(raw: str) -> str | None:
     Strips whitespace and does a case-insensitive substring search.
     Returns the matched class string, or None if no valid class is found.
     """
-    text = raw.strip().lower()
-    # Sort longest-first so "unintentional_blur" is checked before the
-    # shorter "intentional_blur" which is a substring of it.
-    for cls in sorted(CLASSES, key=len, reverse=True):
-        if cls in text:
-            return cls
-    return None
+    return find_in_text(raw)
 
 
 @lru_cache(maxsize=None)

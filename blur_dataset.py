@@ -26,10 +26,12 @@ from tinker_cookbook.supervised.types import SupervisedDataset, SupervisedDatase
 from tinker_cookbook.tokenizer_utils import get_tokenizer
 from tinker_cookbook.utils.misc_utils import timed
 
+from blur_labels import CLASSES, find_in_text, normalize
+
 logger = logging.getLogger(__name__)
 
-CLASS_SLUGS = ("intentional_blur", "unintentional_blur", "sharp")
-CLASS_NAMES = ("intentional blur", "unintentional blur", "sharp")
+CLASS_SLUGS = CLASSES
+CLASS_NAMES = tuple(class_name.replace("_", " ") for class_name in CLASS_SLUGS)
 CLASS_SLUG_TO_NAME = dict(zip(CLASS_SLUGS, CLASS_NAMES, strict=True))
 CLASS_NAME_TO_SLUG = {name: slug for slug, name in CLASS_SLUG_TO_NAME.items()}
 SPLIT_TO_DIRNAME = {"train": "train", "test": "holdout"}
@@ -99,10 +101,7 @@ def _normalize_split(split: str) -> str:
 
 
 def _normalize_class_slug(class_slug: str) -> str:
-    normalized = class_slug.strip()
-    if normalized not in CLASS_SLUG_TO_NAME:
-        raise ValueError(f"Unsupported class {class_slug!r}; expected one of {list(CLASS_SLUG_TO_NAME)}")
-    return normalized
+    return normalize(class_slug)
 
 
 def _example_from_path(image_path: Path, split: str, class_slug: str) -> BlurExample:
@@ -133,11 +132,10 @@ def _open_image_from_path(image_path: str) -> Image.Image:
 
 
 def parse_predicted_class_name(text: str) -> str:
-    normalized = text.strip().lower()
-    for class_name in sorted(CLASS_NAMES, key=len, reverse=True):
-        if class_name in normalized:
-            return class_name
-    return normalized.split(":")[-1].strip()
+    canonical = find_in_text(text)
+    if canonical is not None:
+        return CLASS_SLUG_TO_NAME[canonical]
+    return text.strip().lower().split(":")[-1].strip()
 
 
 def _iter_split_directory(dataset_root: Path, split: str) -> list[BlurExample]:
