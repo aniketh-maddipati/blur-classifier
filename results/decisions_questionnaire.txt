@@ -1,0 +1,6 @@
+DSC06207_verdict: unintentional
+DSC05659_verdict: unintentional; when blowing it up i basically see the blur now that wasnt there with a smaller view
+denominator: keep
+reference_labels: range
+step20_crowned: rerun-needed
+venue: thinking machine labs community project

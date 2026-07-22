@@ -1,0 +1,57 @@
+Disabling PyTorch because PyTorch >= 2.4 is required but found 2.2.2
+PyTorch was not found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+PyTorch was not found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+Evaluating tinker://f9535678-2102-54bc-8db9-c8fe6c05e253:train:0/sampler_weights/final
+max_image_size=1344  temperature=0.0  repeats=3
+
+=== Run 1: accuracy 0.6667 (28/42, Wilson 95% [0.516, 0.790]) ===
+Per-class precision / recall:
+  intentional blur: precision=0.4615 recall=0.5455
+  unintentional blur: precision=0.7222 recall=0.6190
+  sharp: precision=0.8182 recall=0.9000
+Confusion matrix:
+actual \ predicted  intentional blur    unintentional blur  sharp             
+intentional blur    6                   5                   0                 
+unintentional blur  6                   13                  2                 
+sharp               1                   0                   9                 
+
+=== Run 2: accuracy 0.6667 (28/42, Wilson 95% [0.516, 0.790]) ===
+Per-class precision / recall:
+  intentional blur: precision=0.5000 recall=0.5455
+  unintentional blur: precision=0.6842 recall=0.6190
+  sharp: precision=0.8182 recall=0.9000
+Confusion matrix:
+actual \ predicted  intentional blur    unintentional blur  sharp             
+intentional blur    6                   5                   0                 
+unintentional blur  6                   13                  2                 
+sharp               0                   1                   9                 
+
+=== Run 3: accuracy 0.6667 (28/42, Wilson 95% [0.516, 0.790]) ===
+Per-class precision / recall:
+  intentional blur: precision=0.5000 recall=0.5455
+  unintentional blur: precision=0.6842 recall=0.6190
+  sharp: precision=0.8182 recall=0.9000
+Confusion matrix:
+actual \ predicted  intentional blur    unintentional blur  sharp             
+intentional blur    6                   5                   0                 
+unintentional blur  6                   13                  2                 
+sharp               0                   1                   9                 
+
+===== Aggregate over 3 runs =====
+Accuracy per run: 0.6667, 0.6667, 0.6667
+Mean 0.6667  min 0.6667  max 0.6667  spread 0.0000
+Images with unstable predictions across runs: 1/42
+
+Majority-vote accuracy: 0.6667 (28/42, Wilson 95% [0.516, 0.790])
+Majority-vote per-class recall (Wilson 95%):
+  intentional blur: 6/11 [0.280, 0.787]
+  unintentional blur: 13/21 [0.409, 0.792]
+  sharp: 9/10 [0.596, 0.982]
+Majority-vote confusion matrix:
+actual \ predicted  intentional blur    unintentional blur  sharp             
+intentional blur    6                   5                   0                 
+unintentional blur  6                   13                  2                 
+sharp               0                   1                   9                 
+
+Per-image predictions written to results/eval_runC_1344.csv

@@ -1,0 +1,74 @@
+C_final: matched 42/42 review rows
+D_final: matched 42/42 review rows
+D_step20: matched 42/42 review rows
+Blind re-review: 42 images, 31/42 agree with original (73.8%)
+
+Original -> Blind relabel confusion:
+  intentional_blur     -> intentional_blur     : 4
+  intentional_blur     -> sharp                : 3  <-- disagreement
+  intentional_blur     -> unintentional_blur   : 4  <-- disagreement
+  sharp                -> sharp                : 10
+  unintentional_blur   -> intentional_blur     : 1  <-- disagreement
+  unintentional_blur   -> sharp                : 3  <-- disagreement
+  unintentional_blur   -> unintentional_blur   : 17
+
+Disagreeing images:
+  DSC05832: unintentional_blur -> sharp  note=-
+  DSC05861: unintentional_blur -> sharp  note=-
+  DSC06236: intentional_blur -> unintentional_blur  note=-
+  DSC06237: intentional_blur -> unintentional_blur  note=lens dirty
+  DSC06309: intentional_blur -> unintentional_blur  note=-
+  DSC06310: intentional_blur -> unintentional_blur  note=-
+  DSC06313: unintentional_blur -> intentional_blur  note=-
+  DSC06419: unintentional_blur -> sharp  note=-
+  DSC06420: intentional_blur -> sharp  note=-
+  DSC06421: intentional_blur -> sharp  note=-
+  DSC06422: intentional_blur -> sharp  note=-
+
+Accuracy by run:
+run                      as-originally-labeled                   blind-corrected                       adjudicated
+C_final         28/42 ( 66.7%, [0.516, 0.790])    30/42 ( 71.4%, [0.564, 0.828])    32/42 ( 76.2%, [0.615, 0.865])
+D_final         29/42 ( 69.0%, [0.540, 0.809])    27/42 ( 64.3%, [0.492, 0.770])    29/42 ( 69.0%, [0.540, 0.809])
+D_step20        33/42 ( 78.6%, [0.641, 0.883])    35/42 ( 83.3%, [0.694, 0.917])    37/42 ( 88.1%, [0.750, 0.948])
+
+Per-class precision/recall for C_final:
+  label set: as-originally-labeled
+    intentional_blur     precision=0.5000 recall=0.5455
+    unintentional_blur   precision=0.6842 recall=0.6190
+    sharp                precision=0.8182 recall=0.9000
+  label set: blind-corrected
+    intentional_blur     precision=0.2500 recall=0.6000
+    unintentional_blur   precision=0.8421 recall=0.7619
+    sharp                precision=1.0000 recall=0.6875
+  label set: adjudicated
+    intentional_blur     precision=0.2500 recall=0.7500
+    unintentional_blur   precision=0.9474 recall=0.7826
+    sharp                precision=1.0000 recall=0.7333
+
+Per-class precision/recall for D_final:
+  label set: as-originally-labeled
+    intentional_blur     precision=0.5333 recall=0.7273
+    unintentional_blur   precision=0.7500 recall=0.5714
+    sharp                precision=0.8182 recall=0.9000
+  label set: blind-corrected
+    intentional_blur     precision=0.2000 recall=0.6000
+    unintentional_blur   precision=0.8125 recall=0.6190
+    sharp                precision=1.0000 recall=0.6875
+  label set: adjudicated
+    intentional_blur     precision=0.2000 recall=0.7500
+    unintentional_blur   precision=0.9375 recall=0.6522
+    sharp                precision=1.0000 recall=0.7333
+
+Per-class precision/recall for D_step20:
+  label set: as-originally-labeled
+    intentional_blur     precision=1.0000 recall=0.3636
+    unintentional_blur   precision=0.7407 recall=0.9524
+    sharp                precision=0.8182 recall=0.9000
+  label set: blind-corrected
+    intentional_blur     precision=0.7500 recall=0.6000
+    unintentional_blur   precision=0.7778 recall=1.0000
+    sharp                precision=1.0000 recall=0.6875
+  label set: adjudicated
+    intentional_blur     precision=0.7500 recall=0.7500
+    unintentional_blur   precision=0.8519 recall=1.0000
+    sharp                precision=1.0000 recall=0.7333

@@ -21,3 +21,5 @@ venv/
 dataset_candidates*/
 .pytest_cache/
 vlm_classifier/
+results/*.bak*
+results/archive/
