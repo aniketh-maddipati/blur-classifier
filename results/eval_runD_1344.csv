@@ -1,0 +1,43 @@
+image_path,basename,actual,pred_run1,pred_run2,pred_run3,n_correct,flipped,majority_pred,majority_correct
+dataset/holdout/intentional_blur/DSC06420.jpg,DSC06420.jpg,intentional blur,intentional blur,intentional blur,intentional blur,3,False,intentional blur,True
+dataset/holdout/unintentional_blur/DSC05861.jpg,DSC05861.jpg,unintentional blur,sharp,sharp,sharp,0,False,sharp,False
+dataset/holdout/unintentional_blur/DSC06417.jpg,DSC06417.jpg,unintentional blur,intentional blur,intentional blur,intentional blur,0,False,intentional blur,False
+dataset/holdout/sharp/DSC05063.jpg,DSC05063.jpg,sharp,sharp,sharp,sharp,3,False,sharp,True
+dataset/holdout/intentional_blur/DSC06421.jpg,DSC06421.jpg,intentional blur,intentional blur,intentional blur,intentional blur,3,False,intentional blur,True
+dataset/holdout/intentional_blur/DSC06236.jpg,DSC06236.jpg,intentional blur,intentional blur,intentional blur,unintentional blur,2,True,intentional blur,True
+dataset/holdout/unintentional_blur/DSC06203.jpg,DSC06203.jpg,unintentional blur,unintentional blur,unintentional blur,unintentional blur,3,False,unintentional blur,True
+dataset/holdout/unintentional_blur/DSC05818.jpg,DSC05818.jpg,unintentional blur,unintentional blur,unintentional blur,unintentional blur,3,False,unintentional blur,True
+dataset/holdout/sharp/DSC06210.jpg,DSC06210.jpg,sharp,sharp,sharp,sharp,3,False,sharp,True
+dataset/holdout/intentional_blur/DSC06237.jpg,DSC06237.jpg,intentional blur,unintentional blur,unintentional blur,unintentional blur,0,False,unintentional blur,False
+dataset/holdout/sharp/DSC05865.jpg,DSC05865.jpg,sharp,sharp,sharp,sharp,3,False,sharp,True
+dataset/holdout/intentional_blur/DSC05804.jpg,DSC05804.jpg,intentional blur,intentional blur,intentional blur,intentional blur,3,False,intentional blur,True
+dataset/holdout/intentional_blur/DSC05803.jpg,DSC05803.jpg,intentional blur,intentional blur,intentional blur,intentional blur,3,False,intentional blur,True
+dataset/holdout/unintentional_blur/DSC05186.jpg,DSC05186.jpg,unintentional blur,unintentional blur,unintentional blur,unintentional blur,3,False,unintentional blur,True
+dataset/holdout/intentional_blur/DSC06310.jpg,DSC06310.jpg,intentional blur,unintentional blur,unintentional blur,unintentional blur,0,False,unintentional blur,False
+dataset/holdout/unintentional_blur/DSC06205.jpg,DSC06205.jpg,unintentional blur,unintentional blur,unintentional blur,unintentional blur,3,False,unintentional blur,True
+dataset/holdout/sharp/DSC05854.jpg,DSC05854.jpg,sharp,sharp,sharp,sharp,3,False,sharp,True
+dataset/holdout/unintentional_blur/DSC06423.jpg,DSC06423.jpg,unintentional blur,intentional blur,intentional blur,intentional blur,0,False,intentional blur,False
+dataset/holdout/unintentional_blur/DSC06419.jpg,DSC06419.jpg,unintentional blur,intentional blur,intentional blur,intentional blur,0,False,intentional blur,False
+dataset/holdout/sharp/DSC06316.jpg,DSC06316.jpg,sharp,sharp,sharp,sharp,3,False,sharp,True
+dataset/holdout/sharp/DSC06315.jpg,DSC06315.jpg,sharp,sharp,sharp,sharp,3,False,sharp,True
+dataset/holdout/unintentional_blur/DSC06424.jpg,DSC06424.jpg,unintentional blur,intentional blur,intentional blur,intentional blur,0,False,intentional blur,False
+dataset/holdout/intentional_blur/DSC06207.jpg,DSC06207.jpg,intentional blur,unintentional blur,unintentional blur,unintentional blur,0,False,unintentional blur,False
+dataset/holdout/unintentional_blur/DSC05832.jpg,DSC05832.jpg,unintentional blur,sharp,sharp,sharp,0,False,sharp,False
+dataset/holdout/unintentional_blur/DSC06418.jpg,DSC06418.jpg,unintentional blur,intentional blur,intentional blur,intentional blur,0,False,intentional blur,False
+dataset/holdout/sharp/DSC05659.jpg,DSC05659.jpg,sharp,unintentional blur,unintentional blur,unintentional blur,0,False,unintentional blur,False
+dataset/holdout/intentional_blur/DSC06956.jpg,DSC06956.jpg,intentional blur,intentional blur,intentional blur,intentional blur,3,False,intentional blur,True
+dataset/holdout/unintentional_blur/DSC06318.jpg,DSC06318.jpg,unintentional blur,unintentional blur,unintentional blur,unintentional blur,3,False,unintentional blur,True
+dataset/holdout/sharp/DSC05833.jpg,DSC05833.jpg,sharp,sharp,sharp,sharp,3,False,sharp,True
+dataset/holdout/unintentional_blur/DSC05802.jpg,DSC05802.jpg,unintentional blur,intentional blur,intentional blur,intentional blur,0,False,intentional blur,False
+dataset/holdout/intentional_blur/DSC06422.jpg,DSC06422.jpg,intentional blur,intentional blur,intentional blur,intentional blur,3,False,intentional blur,True
+dataset/holdout/sharp/DSC05866.jpg,DSC05866.jpg,sharp,sharp,sharp,sharp,3,False,sharp,True
+dataset/holdout/intentional_blur/DSC06309.jpg,DSC06309.jpg,intentional blur,intentional blur,intentional blur,unintentional blur,2,True,intentional blur,True
+dataset/holdout/unintentional_blur/DSC06319.jpg,DSC06319.jpg,unintentional blur,unintentional blur,unintentional blur,unintentional blur,3,False,unintentional blur,True
+dataset/holdout/sharp/DSC06211.jpg,DSC06211.jpg,sharp,sharp,sharp,sharp,3,False,sharp,True
+dataset/holdout/unintentional_blur/DSC06313.jpg,DSC06313.jpg,unintentional blur,unintentional blur,unintentional blur,unintentional blur,3,False,unintentional blur,True
+dataset/holdout/unintentional_blur/DSC06320.jpg,DSC06320.jpg,unintentional blur,unintentional blur,unintentional blur,unintentional blur,3,False,unintentional blur,True
+dataset/holdout/unintentional_blur/DSC06416.jpg,DSC06416.jpg,unintentional blur,intentional blur,intentional blur,intentional blur,0,False,intentional blur,False
+dataset/holdout/unintentional_blur/DSC06206.jpg,DSC06206.jpg,unintentional blur,unintentional blur,unintentional blur,unintentional blur,3,False,unintentional blur,True
+dataset/holdout/unintentional_blur/DSC05658.jpg,DSC05658.jpg,unintentional blur,unintentional blur,unintentional blur,unintentional blur,3,False,unintentional blur,True
+dataset/holdout/unintentional_blur/DSC06314.jpg,DSC06314.jpg,unintentional blur,unintentional blur,unintentional blur,unintentional blur,3,False,unintentional blur,True
+dataset/holdout/unintentional_blur/DSC06311.jpg,DSC06311.jpg,unintentional blur,unintentional blur,unintentional blur,unintentional blur,3,False,unintentional blur,True

@@ -6,7 +6,8 @@ dataset/
 dataset_candidates/
 
 # Result CSVs — generated, not source-controlled
-results/*.csv
+results/cull_review*.csv
+results/*.csv.bak*
 
 # Python artifacts
 __pycache__/
