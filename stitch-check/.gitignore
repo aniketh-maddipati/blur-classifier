@@ -1,0 +1,5 @@
+# built binary
+/stitch-check
+# full-resolution outputs: regenerate with the commands in RESULTS.md
+/out/prairie-full.jpg
+/out/lot-full.jpg

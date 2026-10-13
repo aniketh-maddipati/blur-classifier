@@ -1,0 +1,177 @@
+{
+  "canvas" : [
+    6733,
+    3122
+  ],
+  "crops" : [
+    {
+      "file" : "lot-seam1.jpg",
+      "frames" : [
+        "DSC09632.ARW",
+        "DSC09635.ARW"
+      ],
+      "h" : 1000,
+      "w" : 1600,
+      "x" : 2794,
+      "y" : 1040
+    },
+    {
+      "file" : "lot-seam2.jpg",
+      "frames" : [
+        "DSC09634.ARW",
+        "DSC09635.ARW"
+      ],
+      "h" : 1000,
+      "w" : 1600,
+      "x" : 3352,
+      "y" : 1054
+    },
+    {
+      "file" : "lot-seam3.jpg",
+      "frames" : [
+        "DSC09632.ARW",
+        "DSC09633.ARW"
+      ],
+      "h" : 1000,
+      "w" : 1600,
+      "x" : 2010,
+      "y" : 942
+    }
+  ],
+  "frames" : [
+    "DSC09632.ARW",
+    "DSC09633.ARW",
+    "DSC09634.ARW",
+    "DSC09635.ARW"
+  ],
+  "gains" : [
+    1.1092772211154216,
+    1.1000374468584342,
+    1.125212387462635,
+    0.72831278043471692
+  ],
+  "links" : [
+    [
+      "DSC09632.ARW",
+      "DSC09635.ARW"
+    ],
+    [
+      "DSC09634.ARW",
+      "DSC09635.ARW"
+    ],
+    [
+      "DSC09632.ARW",
+      "DSC09633.ARW"
+    ]
+  ],
+  "machine" : {
+    "chip" : "Apple M4 Pro",
+    "gpu" : "Apple M4 Pro",
+    "model" : "Mac16,7",
+    "os" : "Version 27.0.1 (Build 26A434)",
+    "ramGB" : 24
+  },
+  "options" : {
+    "gain" : true,
+    "lockWB" : true,
+    "power" : 2,
+    "regEdge" : 2048,
+    "scale" : 1
+  },
+  "pairs" : [
+    {
+      "accepted" : true,
+      "convention" : 6,
+      "floating" : "DSC09633.ARW",
+      "mad" : 0.03347893287560217,
+      "method" : "coarse shift + homographic",
+      "ncc" : 0.74483179854474524,
+      "overlap" : 0.63558799342105265,
+      "ref" : "DSC09632.ARW",
+      "seconds" : 0.2012178897857666
+    },
+    {
+      "accepted" : true,
+      "convention" : 6,
+      "floating" : "DSC09634.ARW",
+      "mad" : 0.03687966578499674,
+      "method" : "coarse shift + homographic",
+      "ncc" : 0.36380210691077541,
+      "overlap" : 0.69441588998538006,
+      "ref" : "DSC09632.ARW",
+      "seconds" : 0.19368207454681396
+    },
+    {
+      "accepted" : true,
+      "convention" : 6,
+      "floating" : "DSC09635.ARW",
+      "mad" : 0.12689577480570913,
+      "method" : "coarse shift + homographic",
+      "ncc" : 0.73877094982519143,
+      "overlap" : 0.76543654057017541,
+      "ref" : "DSC09632.ARW",
+      "seconds" : 0.18248403072357178
+    },
+    {
+      "accepted" : true,
+      "convention" : 6,
+      "floating" : "DSC09634.ARW",
+      "mad" : 0.038213449131807617,
+      "method" : "coarse shift + homographic",
+      "ncc" : 0.79198686243466931,
+      "overlap" : 0.37484580592105265,
+      "ref" : "DSC09633.ARW",
+      "seconds" : 0.16326308250427246
+    },
+    {
+      "accepted" : true,
+      "convention" : 6,
+      "floating" : "DSC09635.ARW",
+      "mad" : 0.13470815904331315,
+      "method" : "coarse shift + homographic",
+      "ncc" : 0.67699466937975361,
+      "overlap" : 0.54341419956140347,
+      "ref" : "DSC09633.ARW",
+      "seconds" : 0.17375791072845459
+    },
+    {
+      "accepted" : true,
+      "convention" : 6,
+      "floating" : "DSC09635.ARW",
+      "mad" : 0.13462051950758061,
+      "method" : "coarse shift + homographic",
+      "ncc" : 0.7708965170219314,
+      "overlap" : 0.68821957236842102,
+      "ref" : "DSC09634.ARW",
+      "seconds" : 0.17904794216156006
+    }
+  ],
+  "peakFootprintMB" : 1621.0951690673828,
+  "reference" : "DSC09632.ARW",
+  "registrationSize" : [
+    2048,
+    1365
+  ],
+  "seconds" : {
+    "decodePerFrame" : [
+      0.27854001522064209,
+      0.13165009021759033,
+      0.13273799419403076,
+      0.11174893379211426
+    ],
+    "decodeTotal" : 0.65467703342437744,
+    "encodeFullJPEG" : 0.020456075668334961,
+    "pipelineTotal" : 1.8621330261230469,
+    "registrationCoarseSearch" : 0.47930908203125,
+    "registrationPrep" : 0.10258698463439941,
+    "registrationTotal" : 1.0937529802322388,
+    "registrationVisionCalls" : 0.36214089393615723,
+    "shaderCompile" : 0.00015389919281005859,
+    "warpBlendGPU" : 0.005848916665854631,
+    "warpBlendWall" : 0.010373950004577637
+  },
+  "workingSize" : [
+    3936,
+    2624
+  ]
+}
