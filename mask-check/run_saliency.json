@@ -1,0 +1,11 @@
+{
+  "cold_first_call_ms" : {
+    "face" : 35.501207999999998,
+    "saliency" : 31.743124999999999
+  },
+  "images" : 25,
+  "mode" : "saliency",
+  "peak_footprint_mb" : 1659.3137130737305,
+  "peak_rss_mb" : 265.21875,
+  "units" : "all"
+}

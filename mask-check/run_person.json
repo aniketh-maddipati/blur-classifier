@@ -1,0 +1,10 @@
+{
+  "cold_first_call_ms" : {
+    "person" : 105.91612499999999
+  },
+  "images" : 25,
+  "mode" : "person",
+  "peak_footprint_mb" : 1510.3138275146484,
+  "peak_rss_mb" : 308.28125,
+  "units" : "all"
+}

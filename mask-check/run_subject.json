@@ -1,0 +1,10 @@
+{
+  "cold_first_call_ms" : {
+    "subject" : 109.152916
+  },
+  "images" : 25,
+  "mode" : "subject",
+  "peak_footprint_mb" : 1675.1887588500977,
+  "peak_rss_mb" : 272.234375,
+  "units" : "all"
+}

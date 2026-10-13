@@ -1,0 +1,18 @@
+{
+  "cold_first_call_ms" : {
+    "face" : 33.538832999999997,
+    "saliency" : 28.265792000000001,
+    "sam_encode" : 292.28554100000002,
+    "sam_prompt_decode" : 46.121875000000003
+  },
+  "images" : 25,
+  "mode" : "sam",
+  "peak_footprint_mb" : 1860.579704284668,
+  "peak_rss_mb" : 679.78125,
+  "sam_load_ms" : {
+    "ImageEncoder" : 1.6285419999999999,
+    "MaskDecoder" : 62.688667000000002,
+    "PromptEncoder" : 0.95362499999999994
+  },
+  "units" : "cpuOnly"
+}

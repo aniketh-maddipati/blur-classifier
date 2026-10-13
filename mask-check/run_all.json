@@ -1,0 +1,20 @@
+{
+  "cold_first_call_ms" : {
+    "face" : 38.177290999999997,
+    "person" : 108.42212499999999,
+    "saliency" : 23.7195,
+    "sam_encode" : 3212.8762499999998,
+    "sam_prompt_decode" : 2287.7865830000001,
+    "subject" : 137.03770800000001
+  },
+  "images" : 25,
+  "mode" : "all",
+  "peak_footprint_mb" : 1952.6113433837891,
+  "peak_rss_mb" : 548.140625,
+  "sam_load_ms" : {
+    "ImageEncoder" : 69.797416999999996,
+    "MaskDecoder" : 1737.1874170000001,
+    "PromptEncoder" : 7.7482920000000002
+  },
+  "units" : "all"
+}
